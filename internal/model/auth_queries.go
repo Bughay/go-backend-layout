@@ -25,10 +25,16 @@ type LoginRequest struct {
 
 // --- Response Payloads (Outgoing) ---
 
-type AuthResponse struct {
-	AccessToken string `json:"access_token"`
+type LoginResponse struct {
+	AccessToken string `json:"access_token,omitempty"`
 	TokenType   string `json:"token_type"`
 	User        *User  `json:"user"`
+}
+
+type RegistrationResponse struct {
+	Message string
+	Success bool
+	Person  *User
 }
 
 // Claims represents the data embedded inside our JWT.

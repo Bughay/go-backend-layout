@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/Bughay/go-backend-layout/internal/lib"
+
 	"github.com/Bughay/go-backend-layout/internal/auth"
 	"github.com/Bughay/go-backend-layout/internal/model"
 	"github.com/Bughay/go-backend-layout/internal/service"
@@ -27,21 +29,21 @@ func (h *ProductHandler) Create(w http.ResponseWriter, r *http.Request) {
 
 	var req model.CreateProductRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+		lib.WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
 	product, err := h.productSvc.Create(r.Context(), claims.UserID, &req)
 	if err != nil {
 		if isValidationErr(err) {
-			auth.WriteError(w, http.StatusUnprocessableEntity, err.Error())
+			lib.WriteError(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
-		auth.WriteError(w, http.StatusInternalServerError, "failed to create product")
+		lib.WriteError(w, http.StatusInternalServerError, "failed to create product")
 		return
 	}
 
-	auth.WriteJSON(w, http.StatusCreated, product)
+	lib.WriteJSON(w, http.StatusCreated, product)
 }
 
 func (h *ProductHandler) GetAll(w http.ResponseWriter, r *http.Request) {
@@ -50,32 +52,32 @@ func (h *ProductHandler) GetAll(w http.ResponseWriter, r *http.Request) {
 
 	result, err := h.productSvc.GetAll(r.Context(), page, limit)
 	if err != nil {
-		auth.WriteError(w, http.StatusInternalServerError, "failed to retrieve products")
+		lib.WriteError(w, http.StatusInternalServerError, "failed to retrieve products")
 		return
 	}
 
-	auth.WriteJSON(w, http.StatusOK, result)
+	lib.WriteJSON(w, http.StatusOK, result)
 }
 
 func (h *ProductHandler) GetByID(w http.ResponseWriter, r *http.Request) {
 	// Go 1.22+: PathValue extracts {id} from the route pattern
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid product id")
+		lib.WriteError(w, http.StatusBadRequest, "invalid product id")
 		return
 	}
 
 	product, err := h.productSvc.GetByID(r.Context(), id)
 	if err != nil {
 		if strings.HasPrefix(err.Error(), "not_found:") {
-			auth.WriteError(w, http.StatusNotFound, err.Error())
+			lib.WriteError(w, http.StatusNotFound, err.Error())
 			return
 		}
-		auth.WriteError(w, http.StatusInternalServerError, "failed to retrieve product")
+		lib.WriteError(w, http.StatusInternalServerError, "failed to retrieve product")
 		return
 	}
 
-	auth.WriteJSON(w, http.StatusOK, product)
+	lib.WriteJSON(w, http.StatusOK, product)
 }
 
 func (h *ProductHandler) Update(w http.ResponseWriter, r *http.Request) {
@@ -83,13 +85,13 @@ func (h *ProductHandler) Update(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid product id")
+		lib.WriteError(w, http.StatusBadRequest, "invalid product id")
 		return
 	}
 
 	var req model.UpdateProductRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body")
+		lib.WriteError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
@@ -97,18 +99,18 @@ func (h *ProductHandler) Update(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch {
 		case strings.HasPrefix(err.Error(), "not_found:"):
-			auth.WriteError(w, http.StatusNotFound, err.Error())
+			lib.WriteError(w, http.StatusNotFound, err.Error())
 		case strings.HasPrefix(err.Error(), "forbidden:"):
-			auth.WriteError(w, http.StatusForbidden, err.Error())
+			lib.WriteError(w, http.StatusForbidden, err.Error())
 		case isValidationErr(err):
-			auth.WriteError(w, http.StatusUnprocessableEntity, err.Error())
+			lib.WriteError(w, http.StatusUnprocessableEntity, err.Error())
 		default:
-			auth.WriteError(w, http.StatusInternalServerError, "failed to update product")
+			lib.WriteError(w, http.StatusInternalServerError, "failed to update product")
 		}
 		return
 	}
 
-	auth.WriteJSON(w, http.StatusOK, product)
+	lib.WriteJSON(w, http.StatusOK, product)
 }
 
 func (h *ProductHandler) Delete(w http.ResponseWriter, r *http.Request) {
@@ -116,18 +118,18 @@ func (h *ProductHandler) Delete(w http.ResponseWriter, r *http.Request) {
 
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	if err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid product id")
+		lib.WriteError(w, http.StatusBadRequest, "invalid product id")
 		return
 	}
 
 	if err := h.productSvc.Delete(r.Context(), claims.UserID, id); err != nil {
 		switch {
 		case strings.HasPrefix(err.Error(), "not_found:"):
-			auth.WriteError(w, http.StatusNotFound, err.Error())
+			lib.WriteError(w, http.StatusNotFound, err.Error())
 		case strings.HasPrefix(err.Error(), "forbidden:"):
-			auth.WriteError(w, http.StatusForbidden, err.Error())
+			lib.WriteError(w, http.StatusForbidden, err.Error())
 		default:
-			auth.WriteError(w, http.StatusInternalServerError, "failed to delete product")
+			lib.WriteError(w, http.StatusInternalServerError, "failed to delete product")
 		}
 		return
 	}

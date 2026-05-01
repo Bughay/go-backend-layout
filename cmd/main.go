@@ -19,6 +19,7 @@ import (
 	"github.com/Bughay/go-backend-layout/internal/repository"
 	"github.com/Bughay/go-backend-layout/internal/service"
 	"github.com/joho/godotenv"
+	"github.com/rs/cors"
 )
 
 func main() {
@@ -28,7 +29,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	// 2. Load typed configuration (fails fast on missing env vars)
-	cfg, err := config.Load()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		logger.Error("failed to load configuration", "error", err)
 		os.Exit(1)
@@ -70,11 +71,18 @@ func main() {
 
 	// 6. Apply global middleware (outermost = last to execute for the request, first for the response)
 	loggedMux := middleware.Logger(logger)(mux)
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"http://127.0.0.1:5501", "http://localhost:5501"},
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowCredentials: true,
+	})
 
+	handler := c.Handler(loggedMux)
 	// 7. Configure the server with strict timeouts — essential for production
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%s", cfg.Server.Port),
-		Handler:      loggedMux,
+		Handler:      handler,
 		ReadTimeout:  time.Duration(cfg.Server.ReadTimeoutSec) * time.Second,
 		WriteTimeout: time.Duration(cfg.Server.WriteTimeoutSec) * time.Second,
 		IdleTimeout:  120 * time.Second,

@@ -14,8 +14,8 @@ import (
 
 // AuthService defines the contract for authentication business logic.
 type AuthService interface {
-	Register(ctx context.Context, req *model.RegisterRequest) (*model.AuthResponse, error)
-	Login(ctx context.Context, req *model.LoginRequest) (*model.AuthResponse, error)
+	Register(ctx context.Context, req *model.RegisterRequest) (*model.RegistrationResponse, error)
+	Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, error)
 }
 
 type authService struct {
@@ -28,7 +28,7 @@ func NewAuthService(userRepo repository.UserRepository, jwtManager *auth.Manager
 	return &authService{userRepo: userRepo, jwtManager: jwtManager}
 }
 
-func (s *authService) Register(ctx context.Context, req *model.RegisterRequest) (*model.AuthResponse, error) {
+func (s *authService) Register(ctx context.Context, req *model.RegisterRequest) (*model.RegistrationResponse, error) {
 	// --- Validation ---
 	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
 	if req.Email == "" || !strings.Contains(req.Email, "@") {
@@ -59,19 +59,18 @@ func (s *authService) Register(ctx context.Context, req *model.RegisterRequest) 
 		return nil, fmt.Errorf("register: failed to create user: %w", err)
 	}
 
-	token, err := s.jwtManager.Generate(user.ID, user.Email, user.Role)
 	if err != nil {
 		return nil, err
 	}
 
-	return &model.AuthResponse{
-		AccessToken: token,
-		TokenType:   "Bearer",
-		User:        user,
+	return &model.RegistrationResponse{
+		Message: "You have succesfully registered",
+		Success: true,
+		Person:  user,
 	}, nil
 }
 
-func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (*model.AuthResponse, error) {
+func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, error) {
 	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
 
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
@@ -93,7 +92,7 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (*mode
 		return nil, err
 	}
 
-	return &model.AuthResponse{
+	return &model.LoginResponse{
 		AccessToken: token,
 		TokenType:   "Bearer",
 		User:        user,

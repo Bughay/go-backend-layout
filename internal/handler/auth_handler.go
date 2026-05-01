@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/Bughay/go-backend-layout/internal/auth"
+	"github.com/Bughay/go-backend-layout/internal/lib"
 	"github.com/Bughay/go-backend-layout/internal/model"
 	"github.com/Bughay/go-backend-layout/internal/service"
 )
@@ -24,37 +24,37 @@ func NewAuthHandler(authSvc service.AuthService) *AuthHandler {
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	var req model.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
+		lib.WriteError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
 		return
 	}
 
 	resp, err := h.authSvc.Register(r.Context(), &req)
 	if err != nil {
 		if isValidationErr(err) {
-			auth.WriteError(w, http.StatusUnprocessableEntity, err.Error())
+			lib.WriteError(w, http.StatusUnprocessableEntity, err.Error())
 			return
 		}
-		auth.WriteError(w, http.StatusInternalServerError, "registration failed")
+		lib.WriteError(w, http.StatusInternalServerError, "registration failed")
 		return
 	}
 
-	auth.WriteJSON(w, http.StatusCreated, resp)
+	lib.WriteJSON(w, http.StatusCreated, resp)
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	var req model.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		auth.WriteError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
+		lib.WriteError(w, http.StatusBadRequest, "invalid request body: "+err.Error())
 		return
 	}
 
 	resp, err := h.authSvc.Login(r.Context(), &req)
 	if err != nil {
-		auth.WriteError(w, http.StatusUnauthorized, err.Error())
+		lib.WriteError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
 
-	auth.WriteJSON(w, http.StatusOK, resp)
+	lib.WriteJSON(w, http.StatusOK, resp)
 }
 
 // isValidationErr checks if the error originated from a validation rule.

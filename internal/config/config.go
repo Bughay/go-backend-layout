@@ -37,7 +37,7 @@ type AIConfig struct {
 
 // Load reads environment variables and returns a populated Config struct.
 // It fails fast if required variables are missing.
-func Load() (*Config, error) {
+func LoadConfig() (*Config, error) {
 	secret := os.Getenv("JWT_SECRET")
 	if secret == "" {
 		return nil, fmt.Errorf("config: JWT_SECRET environment variable is required")
