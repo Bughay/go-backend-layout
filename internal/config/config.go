@@ -12,7 +12,7 @@ type Config struct {
 	Server   ServerConfig
 	Database DatabaseConfig
 	JWT      JWTConfig
-	AI       AIConfig
+	Agent    AgentConfig
 }
 
 type ServerConfig struct {
@@ -30,7 +30,7 @@ type JWTConfig struct {
 	ExpiryHours int
 }
 
-type AIConfig struct {
+type AgentConfig struct {
 	DEEPSEEKAPIKEY string
 	GROKAPIKEY     string
 }
@@ -64,6 +64,8 @@ func LoadConfig() (*Config, error) {
 	if port == "" {
 		port = "8080"
 	}
+	deepseekApiKey := os.Getenv("DEEPSEEKAPIKEY")
+	grokApiKey := os.Getenv("grokApiKey")
 
 	return &Config{
 		Server: ServerConfig{
@@ -73,5 +75,6 @@ func LoadConfig() (*Config, error) {
 		},
 		Database: DatabaseConfig{DSN: dbDSN},
 		JWT:      JWTConfig{Secret: secret, ExpiryHours: jwtExpiry},
+		Agent:    AgentConfig{DEEPSEEKAPIKEY: deepseekApiKey, GROKAPIKEY: grokApiKey},
 	}, nil
 }

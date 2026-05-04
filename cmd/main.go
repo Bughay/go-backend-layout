@@ -47,13 +47,10 @@ func main() {
 	jwtManager := auth.NewManager(cfg.JWT.Secret, cfg.JWT.ExpiryHours)
 
 	userRepo := repository.NewUserRepository(pool)
-	productRepo := repository.NewProductRepository(pool)
 
 	authSvc := service.NewAuthService(userRepo, jwtManager)
-	productSvc := service.NewProductService(productRepo)
 
 	authHandler := handler.NewAuthHandler(authSvc)
-	productHandler := handler.NewProductHandler(productSvc)
 
 	// 5. Register routes using the Go 1.22+ enhanced ServeMux
 	mux := http.NewServeMux()
@@ -61,13 +58,6 @@ func main() {
 	// Public routes
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
-
-	// Protected routes — jwt.Middleware wraps the handler
-	mux.Handle("GET  /api/v1/products", jwtManager.Middleware(http.HandlerFunc(productHandler.GetAll)))
-	mux.Handle("GET  /api/v1/products/{id}", jwtManager.Middleware(http.HandlerFunc(productHandler.GetByID)))
-	mux.Handle("POST /api/v1/products", jwtManager.Middleware(http.HandlerFunc(productHandler.Create)))
-	mux.Handle("PATCH /api/v1/products/{id}", jwtManager.Middleware(http.HandlerFunc(productHandler.Update)))
-	mux.Handle("DELETE /api/v1/products/{id}", jwtManager.Middleware(http.HandlerFunc(productHandler.Delete)))
 
 	// 6. Apply global middleware (outermost = last to execute for the request, first for the response)
 	loggedMux := middleware.Logger(logger)(mux)
