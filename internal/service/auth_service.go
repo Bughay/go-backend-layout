@@ -15,7 +15,7 @@ import (
 // AuthService defines the contract for authentication business logic.
 type AuthService interface {
 	Register(ctx context.Context, req *model.RegisterRequest) (*model.RegistrationResponse, error)
-	Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, error)
+	Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, string, error)
 }
 
 type authService struct {
@@ -70,31 +70,35 @@ func (s *authService) Register(ctx context.Context, req *model.RegisterRequest) 
 	}, nil
 }
 
-func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, error) {
+func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, string, error) {
 	req.Email = strings.TrimSpace(strings.ToLower(req.Email))
 
 	user, err := s.userRepo.FindByEmail(ctx, req.Email)
 	if err != nil {
-		return nil, fmt.Errorf("login: database error: %w", err)
+		return nil, "", fmt.Errorf("login: database error: %w", err)
 	}
 
 	// IMPORTANT: Return the same generic error for both "user not found" and
 	// "wrong password" to prevent user enumeration attacks.
 	if user == nil {
-		return nil, fmt.Errorf("auth: invalid email or password")
+		return nil, "", fmt.Errorf("auth: invalid email or password")
 	}
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		return nil, fmt.Errorf("auth: invalid email or password")
+		return nil, "", fmt.Errorf("auth: invalid email or password")
 	}
 
-	token, err := s.jwtManager.Generate(user.ID, user.Email, user.Role)
+	accessToken, err := s.jwtManager.Generate(user.ID, user.Email, user.Role)
 	if err != nil {
-		return nil, err
+		return nil, "", err
+	}
+	refreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID, user.Email, user.Role)
+	if err != nil {
+		return nil, "", err
 	}
 
 	return &model.LoginResponse{
-		AccessToken: token,
+		AccessToken: accessToken,
 		TokenType:   "Bearer",
 		User:        user,
-	}, nil
+	}, refreshToken, nil
 }

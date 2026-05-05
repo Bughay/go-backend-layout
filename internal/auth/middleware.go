@@ -43,6 +43,36 @@ func (m *Manager) Middleware(next http.Handler) http.Handler {
 	})
 }
 
+// CookieMiddleware for page routes
+func (m *Manager) CookieMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		cookie, err := r.Cookie("refresh_token") // or whatever you name it
+		if err != nil {
+			lib.WriteError(w, http.StatusUnauthorized, "authentication cookie required")
+			return
+		}
+
+		claims, err := m.Validate(cookie.Value)
+		if err != nil {
+			// Clear bad cookie
+			http.SetCookie(w, &http.Cookie{
+				Name:     "refresh_token",
+				Value:    "",
+				Path:     "/",
+				MaxAge:   -1,
+				HttpOnly: true,
+				Secure:   false,
+				SameSite: http.SameSiteStrictMode,
+			})
+			lib.WriteError(w, http.StatusUnauthorized, "invalid or expired session")
+			return
+		}
+
+		ctx := context.WithValue(r.Context(), claimsContextKey, claims)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
 // ClaimsFromContext retrieves the validated JWT claims from the request context.
 // Returns nil if not present (i.e., called on an unprotected route).
 func ClaimsFromContext(ctx context.Context) *model.Claims {

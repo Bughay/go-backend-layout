@@ -48,11 +48,21 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.authSvc.Login(r.Context(), &req)
+	resp, refreshToken, err := h.authSvc.Login(r.Context(), &req)
+
 	if err != nil {
 		lib.WriteError(w, http.StatusUnauthorized, err.Error())
 		return
 	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    refreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false,
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400 * 7,
+	})
 
 	lib.WriteJSON(w, http.StatusOK, resp)
 }

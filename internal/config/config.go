@@ -26,8 +26,9 @@ type DatabaseConfig struct {
 }
 
 type JWTConfig struct {
-	Secret      string
-	ExpiryHours int
+	Secret            string
+	AccessExpiryHours int
+	RefreshExpiryDays int
 }
 
 type AgentConfig struct {
@@ -60,6 +61,10 @@ func LoadConfig() (*Config, error) {
 	if jwtExpiry == 0 {
 		jwtExpiry = 24
 	}
+	refreshTokenExpiry, _ := strconv.Atoi(os.Getenv("JWT_EXPIRY_HOURS"))
+	if refreshTokenExpiry == 0 {
+		refreshTokenExpiry = 1
+	}
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
@@ -74,7 +79,7 @@ func LoadConfig() (*Config, error) {
 			WriteTimeoutSec: writeTimeout,
 		},
 		Database: DatabaseConfig{DSN: dbDSN},
-		JWT:      JWTConfig{Secret: secret, ExpiryHours: jwtExpiry},
+		JWT:      JWTConfig{Secret: secret, AccessExpiryHours: jwtExpiry, RefreshExpiryDays: refreshTokenExpiry},
 		Agent:    AgentConfig{DEEPSEEKAPIKEY: deepseekApiKey, GROKAPIKEY: grokApiKey},
 	}, nil
 }

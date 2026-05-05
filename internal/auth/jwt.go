@@ -19,15 +19,17 @@ type jwtCustomClaims struct {
 
 // Manager handles all JWT operations using a typed struct, not a global variable.
 type Manager struct {
-	secretKey   []byte
-	expiryHours int
+	secretKey     []byte
+	accessExpiry  time.Duration
+	refreshExpiry time.Duration
 }
 
 // NewManager creates a new JWT Manager.
-func NewManager(secret string, expiryHours int) *Manager {
+func NewManager(secret string, accessExpiryHours int, refreshExpiryHours int) *Manager {
 	return &Manager{
-		secretKey:   []byte(secret),
-		expiryHours: expiryHours,
+		secretKey:     []byte(secret),
+		accessExpiry:  time.Duration(accessExpiryHours) * time.Hour,
+		refreshExpiry: time.Duration(refreshExpiryHours) * time.Hour,
 	}
 }
 
@@ -40,7 +42,7 @@ func (m *Manager) Generate(userID int64, email, role string) (string, error) {
 			Role:   role,
 		},
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(m.expiryHours) * time.Hour)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(time.Duration(m.accessExpiry) * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
 			Issuer:    "go-api",
 		},
@@ -76,4 +78,21 @@ func (m *Manager) Validate(tokenStr string) (*model.Claims, error) {
 	}
 
 	return &claims.Claims, nil
+}
+
+func (m *Manager) GenerateRefreshToken(userID int64, email, role string) (string, error) {
+	claims := jwtCustomClaims{
+		Claims: model.Claims{
+			UserID: userID,
+			Email:  email,
+			Role:   role,
+		},
+		RegisteredClaims: jwt.RegisteredClaims{
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(m.refreshExpiry)),
+			IssuedAt:  jwt.NewNumericDate(time.Now()),
+			Issuer:    "go-api-refresh",
+		},
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	return token.SignedString(m.secretKey)
 }

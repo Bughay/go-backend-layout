@@ -18,6 +18,7 @@ import (
 	"github.com/Bughay/go-backend-layout/internal/middleware"
 	"github.com/Bughay/go-backend-layout/internal/repository"
 	"github.com/Bughay/go-backend-layout/internal/service"
+
 	"github.com/joho/godotenv"
 	"github.com/rs/cors"
 )
@@ -44,7 +45,7 @@ func main() {
 	defer pool.Close()
 
 	// 4. Wire dependencies (Dependency Injection, manually)
-	jwtManager := auth.NewManager(cfg.JWT.Secret, cfg.JWT.ExpiryHours)
+	jwtManager := auth.NewManager(cfg.JWT.Secret, cfg.JWT.AccessExpiryHours, cfg.JWT.RefreshExpiryDays)
 
 	userRepo := repository.NewUserRepository(pool)
 
@@ -52,12 +53,22 @@ func main() {
 
 	authHandler := handler.NewAuthHandler(authSvc)
 
+	authDir := "/home/lordmark1/Desktop/go_boilerplate/frontend/frontend/auth"
+	apphubDir := "/home/lordmark1/Desktop/go_boilerplate/frontend/frontend/pickservice"
+
+	apphubProtected := jwtManager.CookieMiddleware(
+		http.StripPrefix("/apphub/", middleware.NoCacheMiddleware(http.FileServer(http.Dir(apphubDir)))),
+	)
 	// 5. Register routes using the Go 1.22+ enhanced ServeMux
 	mux := http.NewServeMux()
 
 	// Public routes
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
+
+	// static routes
+	mux.Handle("/auth/", http.StripPrefix("/auth/", middleware.NoCacheMiddleware(http.FileServer(http.Dir(authDir)))))
+	mux.Handle("/apphub/", apphubProtected)
 
 	// 6. Apply global middleware (outermost = last to execute for the request, first for the response)
 	loggedMux := middleware.Logger(logger)(mux)
