@@ -14,8 +14,9 @@ Creating a golang boilerplate for backend projects
 
 
 
+
 # tasks
 
-
+- Create Refresh tokens and cookies X
+- Add endpoints to auth (logout, refresh, getUserInfo)
 - Update the logging so it properly returns error values and to the console aswell
-- upgrade the frontend to return the errors
