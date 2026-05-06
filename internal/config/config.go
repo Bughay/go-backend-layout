@@ -59,11 +59,11 @@ func LoadConfig() (*Config, error) {
 	}
 	jwtExpiry, _ := strconv.Atoi(os.Getenv("JWT_EXPIRY_HOURS"))
 	if jwtExpiry == 0 {
-		jwtExpiry = 24
+		jwtExpiry = 1
 	}
 	refreshTokenExpiry, _ := strconv.Atoi(os.Getenv("JWT_EXPIRY_HOURS"))
 	if refreshTokenExpiry == 0 {
-		refreshTokenExpiry = 1
+		refreshTokenExpiry = 24
 	}
 	port := os.Getenv("PORT")
 	if port == "" {

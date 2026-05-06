@@ -46,7 +46,7 @@ func (m *Manager) Middleware(next http.Handler) http.Handler {
 // CookieMiddleware for page routes
 func (m *Manager) CookieMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		cookie, err := r.Cookie("refresh_token") // or whatever you name it
+		cookie, err := r.Cookie("refresh_token")
 		if err != nil {
 			lib.WriteError(w, http.StatusUnauthorized, "authentication cookie required")
 			return

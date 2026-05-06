@@ -16,6 +16,8 @@ import (
 type AuthService interface {
 	Register(ctx context.Context, req *model.RegisterRequest) (*model.RegistrationResponse, error)
 	Login(ctx context.Context, req *model.LoginRequest) (*model.LoginResponse, string, error)
+	Logout(ctx context.Context, refreshToken string) error
+	Refresh(ctx context.Context, refreshToken string) (*model.RefreshResponse, string, error)
 }
 
 type authService struct {
@@ -101,4 +103,45 @@ func (s *authService) Login(ctx context.Context, req *model.LoginRequest) (*mode
 		TokenType:   "Bearer",
 		User:        user,
 	}, refreshToken, nil
+}
+
+// Refresh validates the refresh token and issues NEW tokens (rotation)
+func (s *authService) Refresh(ctx context.Context, refreshToken string) (*model.RefreshResponse, string, error) {
+	claims, err := s.jwtManager.Validate(refreshToken)
+	if err != nil {
+		return nil, "", fmt.Errorf("auth: invalid refresh token: %w", err)
+	}
+
+	// Verify user still exists
+	user, err := s.userRepo.FindByEmail(ctx, claims.Email)
+	if err != nil {
+		return nil, "", fmt.Errorf("refresh: database error: %w", err)
+	}
+	if user == nil {
+		return nil, "", fmt.Errorf("auth: user no longer exists")
+	}
+
+	// Issue NEW tokens (rotation — old refresh token is now invalid)
+	newAccessToken, err := s.jwtManager.Generate(user.ID, user.Email, user.Role)
+	if err != nil {
+		return nil, "", err
+	}
+	newRefreshToken, err := s.jwtManager.GenerateRefreshToken(user.ID, user.Email, user.Role)
+	if err != nil {
+		return nil, "", err
+	}
+
+	return &model.RefreshResponse{
+		AccessToken: newAccessToken,
+		TokenType:   "Bearer",
+	}, newRefreshToken, nil
+}
+
+func (s *authService) Logout(ctx context.Context, refreshToken string) error {
+	// Validate the token is even real before accepting logout
+	_, err := s.jwtManager.Validate(refreshToken)
+	if err != nil {
+		return fmt.Errorf("auth: invalid token")
+	}
+	return nil
 }

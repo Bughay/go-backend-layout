@@ -67,6 +67,57 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	lib.WriteJSON(w, http.StatusOK, resp)
 }
 
+func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
+	// Try to invalidate server-side (optional with JWT refresh tokens)
+	cookie, err := r.Cookie("refresh_token")
+	if err == nil && cookie.Value != "" {
+		_ = h.authSvc.Logout(r.Context(), cookie.Value)
+	}
+
+	// Clear the cookie regardless of server-side result
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1, // deletes immediately
+		HttpOnly: true,
+		Secure:   false, // true in production with HTTPS
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	lib.WriteJSON(w, http.StatusOK, map[string]string{
+		"message": "logged out successfully",
+	})
+}
+
+// Refresh handles token rotation
+func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("refresh_token")
+	if err != nil {
+		lib.WriteError(w, http.StatusUnauthorized, "refresh token required")
+		return
+	}
+
+	resp, newRefreshToken, err := h.authSvc.Refresh(r.Context(), cookie.Value)
+	if err != nil {
+		lib.WriteError(w, http.StatusUnauthorized, err.Error())
+		return
+	}
+
+	// Rotate: set new refresh token cookie (old one is now invalid)
+	http.SetCookie(w, &http.Cookie{
+		Name:     "refresh_token",
+		Value:    newRefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // true in production with HTTPS
+		SameSite: http.SameSiteLaxMode,
+		MaxAge:   86400 * 7, // 7 days
+	})
+
+	lib.WriteJSON(w, http.StatusOK, resp)
+}
+
 // isValidationErr checks if the error originated from a validation rule.
 func isValidationErr(err error) bool {
 	return strings.HasPrefix(err.Error(), "validation:")

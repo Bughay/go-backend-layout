@@ -37,6 +37,11 @@ type RegistrationResponse struct {
 	Person  *User
 }
 
+type RefreshResponse struct {
+	AccessToken string `json:"access_token"`
+	TokenType   string `json:"token_type"`
+}
+
 // Claims represents the data embedded inside our JWT.
 type Claims struct {
 	UserID int64  `json:"user_id"`

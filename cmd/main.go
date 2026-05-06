@@ -65,7 +65,8 @@ func main() {
 	// Public routes
 	mux.HandleFunc("POST /api/v1/auth/register", authHandler.Register)
 	mux.HandleFunc("POST /api/v1/auth/login", authHandler.Login)
-
+	mux.HandleFunc("POST /api/v1/auth/logout", authHandler.Logout)
+	mux.HandleFunc("POST /api/v1/auth/refresh", authHandler.Refresh)
 	// static routes
 	mux.Handle("/auth/", http.StripPrefix("/auth/", middleware.NoCacheMiddleware(http.FileServer(http.Dir(authDir)))))
 	mux.Handle("/apphub/", apphubProtected)
